@@ -1,0 +1,142 @@
+data <- matrix(rnorm(mean = 7, sd=2, n = 100000), ncol = 50)
+vec1<-(1:2000)
+vec2<-(1:50)
+
+namesrow<-paste("gene",vec1,sep="")
+namescol<-paste("sample",vec2,sep="")
+row.names(data)<-namesrow
+colnames(data)<-namescol
+boxplot(data)
+
+
+data<-read.csv("tnbcnew.csv",header=T,sep=";")
+n=nrow(data)
+
+
+## prepare affymetrix plateform /// separate
+affyplatform<- function(affy)
+	{
+   	if(!require(dplyr)){install.packages("dplyr")}
+    	library(dplyr)
+	input<-data.frame(affy)
+	colnames(input)<-c("ID_REF","gene")
+	new<-separate(data = input, col = gene, into = c("left", "right"), sep = " /// ")
+	ok<-new[,1:2]
+	colnames(ok)<-c("ID_REF","gene")
+	row.names(ok)<-ok$probe
+	gpl_new<-ok
+	gpl_new
+}
+
+
+
+##prepare matrix with platform
+genetomatrix <- function(platform,matrix)
+	  	{
+	annotation<-data.frame(platform)
+	data<-data.frame(matrix)
+	names<-c("ID_REF","gene")
+	colnames(annotation)<-names
+	annotmat<-merge(annotation,matrix,by="ID_REF")
+	annotmat<-annotmat[,2:ncol(annotmat)]
+	annotmat
+	}
+
+
+##filtermatrix usage 1st column nammed "gene" with non uniq gene symbol
+final<-filtermatrix(data)
+
+
+filtermatrix <- function(data)
+	{
+    #install require R packages if necessary and load them
+    if(!require(dplyr)){
+    install.packages("dplyr")
+    library(dplyr)
+        }
+
+    nbc=ncol(data)
+    data2<-data[,2:nbc]
+    m2 <- apply(data2,1, mean)
+    combined2<-data.frame(m2,data$gene,data)
+    ord2<-combined2[with(combined2,order(-m2)),]
+    ok<-ord2 %>% distinct(gene, .keep_all = T)
+    nbcok=ncol(ok)
+    row.names(ok)<-ok$gene
+    final<-ok[,4:nbcok]
+    final
+    }
+
+
+# merge 2 matrix with gene symbols before combat
+merge2mat<- function(m1,m2)
+		{
+	dfm1<-data.frame(m1)
+	dfm2<-data.frame(m2)
+	df<-merge(dfm1,dfm2,by="row.names")
+	row.names(df)<-df$Row.names
+	df<-df[,2:ncol(df)]
+	df
+	}
+
+
+#usage variable matrix keep only variable genes from from dataframe with uniq gene symbol as row.names
+ok<-varsig(final)
+
+
+varsig <- function(data)
+        {
+    	variable <- apply(data,1, var)
+    	var<-variable[!is.na(variable)]	
+    	tb<-mean(var)+(sd(var))
+    	baseline<-mean(var)
+    	vartable<-data.frame(var)
+        vartable
+    	combined<-merge(vartable,data,by="row.names")
+	    row.names(combined)<-combined$Row.names
+	    combord<-combined[with(combined,order(-var)),]
+	    colord<-ncol(combord)
+	    combord<-combord[,2:colord]
+	    m <- apply(combord,1, mean)
+    	plot(var,m)
+    	abline(v=tb,col="blue",lty=3)
+	    abline(v=baseline,col="red",lty=1)
+    	sub<-subset(combord, combord$var > tb)
+    	head(sub,n=30)[,1:3]
+	    nrow(sub)
+    	sub
+        }
+
+ok<-varsig(final)
+
+vartb <- function(data)
+        {
+    	variable <- apply(data,1, var)
+    	var<-variable[!is.na(variable)]	
+    	tb<-mean(var)
+    	baseline<-mean(var)
+    	vartable<-data.frame(var)
+        vartable
+    	combined<-merge(vartable,data,by="row.names")
+	    row.names(combined)<-combined$Row.names
+	    combord<-combined[with(combined,order(-var)),]
+	    colord<-ncol(combord)
+	    combord<-combord[,2:colord]
+	    m <- apply(combord,1, mean)
+    	plot(var,m)
+    	abline(v=tb,col="blue",lty=3)
+	    abline(v=baseline,col="red",lty=1)
+    	sub<-subset(combord, combord$var > tb)
+    	head(sub,n=30)[,1:3]
+	    nrow(sub)
+    	sub
+        }
+
+
+head(ok,n=20)[,1:5]
+
+
+  result<-merge(sub,data,by="row.names")
+    classement<-result[order(result$variable, decreasing = TRUE),]
+    row.names(classement)<-classement$Row.names
+    final<-classement[,3:ncol(classement)]
