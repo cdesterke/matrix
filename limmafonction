@@ -1,0 +1,23 @@
+## usage : res<-limmagroup(data,pheno,control="NT")
+
+limmagroup<-function(data,pheno,control="NT")
+	{
+		if(!require(limma)){
+		
+		if (!requireNamespace("BiocManager", quietly = TRUE))
+			install.packages("BiocManager")
+			BiocManager::install("limma")}
+			
+		library(limma)	
+
+	# prepare design matrix
+	levels <- relevel(as.factor(pheno$group),ref=control)
+	design <- model.matrix(~levels)
+	rownames(design) = colnames(data)
+	
+	# perform limma analysis
+	tmp <- lmFit(data,design=design)
+	fit <- eBayes(tmp)
+	res = topTable(fit,number = nrow(data),coef=2)
+	res
+}
