@@ -133,6 +133,34 @@ vartb <- function(data)
         }
 
 
+## function to filtre on mean and variance
+vartb <- function(data,thresm=1,thresv=2)
+        {
+    	variable <- apply(data,1, var)
+	var<-variable[!is.na(variable)]	
+    	tb<-mean(var)
+    	baseline<-mean(var)
+    	vartable<-data.frame(var)
+        vartable
+    	combined<-merge(vartable,data,by="row.names")
+	    row.names(combined)<-combined$Row.names
+	    combord<-combined[with(combined,order(-var)),]
+	    colord<-ncol(combord)
+	    combord<-combord[,2:colord]
+	    m <- apply(combord,1, mean)
+	mtable<-data.frame(m)
+ 	combord<-data.frame(mtable,combord)
+    	sub<-subset(combord, combord$var > thresv | combord$m > thresm)
+     	sub
+        }
+
+var<-vartb(xs,thresm=2,thresv=5)
+dim(var)
+head(var[,1:5],n=30)
+
+
+
+
 head(ok,n=20)[,1:5]
 
 
